@@ -52,4 +52,58 @@ Both scripts produce the **same outputs** (correlations, plots, statistics) so y
 📈 Per‑ticker correlations:
    AAPL (same‑day): 0.2871 (n=21)
    AAPL (next‑day): 0.0321 (n=20)
-   ...
+
+   ## 🧠 Methodology
+
+The project follows a simple but robust pipeline:
+
+1. **Data Acquisition**  
+   - `ultra_robust` script: tries to fetch real headlines (via `yfinance.Ticker.news`) and real daily returns (via `yfinance.download`).  
+   - If either fails, it seamlessly switches to **synthetic data** (random walk returns + weakly correlated sentiment).
+
+2. **Sentiment Scoring**  
+   - If `transformers` and `torch` are installed, it uses **FinBERT** (a financial domain BERT model) for state‑of‑the‑art sentiment.  
+   - Otherwise, it falls back to **VADER** (rule‑based, fast but less accurate).
+
+3. **Data Alignment**  
+   - Headlines are aggregated to daily average sentiment per ticker.  
+   - Merged with daily returns on `date` and `ticker`.
+
+4. **Lag Analysis**  
+   - A `return_tomorrow` column is created by shifting returns one day forward per ticker.  
+   - This allows measuring if **today's sentiment predicts tomorrow's return**.
+
+5. **Correlation & Visualisation**  
+   - Pearson correlation coefficients are computed for both same‑day and next‑day relationships.  
+   - Scatter plots with regression lines show the trend.  
+   - Time‑series plots overlay sentiment and returns for a chosen ticker.
+
+   ## 📊 Example Output
+
+### Same‑Day Sentiment vs Return
+![Same‑day plot](sentiment_vs_returns_sameday.png)
+
+### Next‑Day Sentiment vs Return
+![Next‑day plot](sentiment_vs_returns_nextday.png)
+
+### Time Series (AAPL)
+![AAPL timeseries](AAPL_timeseries.png)
+
+## ⚙️ Customisation
+
+You can easily modify the analysis by editing the configuration section at the top of each script:
+
+```python
+TICKERS = ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'GOOGL']   # Add or remove tickers
+END_DATE = datetime.now().date()                       # Change end date
+START_DATE = END_DATE - timedelta(days=30)             # Adjust lookback period
+
+
+## ❓ Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| `ModuleNotFoundError: No module named 'transformers'` | Install with `pip install transformers torch` or let the script fall back to VADER. |
+| Yahoo Finance returns no data | The script auto‑switches to synthetic mode – this is expected during market holidays or rate limiting. |
+| FinBERT loads slowly | First download is large (~500 MB); subsequent runs are fast. |
+| Plots not showing | Ensure you have a GUI backend (e.g., `pip install PyQt5`) or save plots are saved as PNG. |
